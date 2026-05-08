@@ -8,11 +8,15 @@ Tecnología de Desarrollo de Sistemas Informáticos
 👨‍💻 Estudiantes:
 - Juan Andrés Cárdenas Silva — CC: 1014739348
 - Christian Marín Delgado — CC: 1005334750
+- Cristian Giovanny Avila Rivero -CC:1005331780
 
 ---
 
-![Menú Principal](menu.png)
+
 > Pantalla inicial del Sistema de Parqueadero con menú de navegación
+
+<img width="475" height="365" alt="image" src="https://github.com/user-attachments/assets/2a518213-bcba-49b4-a2d0-a4c0400365b0" />
+
 
 ---
 
