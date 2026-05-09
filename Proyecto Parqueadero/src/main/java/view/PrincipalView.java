@@ -62,7 +62,7 @@ public class PrincipalView extends JFrame {
         });
         panel.add(btnSalir, gbc);
 
-        JLabel lblPie = new JLabel("© 2025 - Parqueadero PRO");
+        JLabel lblPie = new JLabel("© 2026 - Parqueadero PRO");
         gbc.gridy = 5;
         gbc.gridwidth = 2;
         panel.add(lblPie, gbc);
