@@ -14,8 +14,7 @@ Tecnología de Desarrollo de Sistemas Informáticos
 
 
 > Pantalla inicial del Sistema de Parqueadero con menú de navegación
-
-<img width="475" height="365" alt="image" src="https://github.com/user-attachments/assets/2a518213-bcba-49b4-a2d0-a4c0400365b0" />
+<img width="484" height="361" alt="image" src="https://github.com/user-attachments/assets/ddc108c1-abb0-4a95-a496-fff7284cdd03" />
 
 
 ---
