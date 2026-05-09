@@ -8,7 +8,7 @@ Tecnología de Desarrollo de Sistemas Informáticos
 👨‍💻 Estudiantes:
 - Juan Andrés Cárdenas Silva — CC: 1014739348
 - Christian Marín Delgado — CC: 1005334750
-- Cristian Giovanny Avila Rivero -CC:1005331780
+
 
 ---
 
