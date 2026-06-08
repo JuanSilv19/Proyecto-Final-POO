@@ -5,75 +5,88 @@ import java.awt.*;
 
 public class PrincipalView extends JFrame {
 
-    public PrincipalView() {
-        setTitle("Sistema de Parqueadero");
-        setSize(400, 300);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
+ public PrincipalView() {
+  setTitle("Sistema de Parqueadero - Administraci\u00f3n");
+  setSize(500, 380);
+  setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+  setLocationRelativeTo(null);
+  getContentPane().setBackground(new Color(0xA9CCE3));
+  setLayout(new BorderLayout(10, 10));
 
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+  // T\u00edtulo
+  JPanel panelTitulo = new JPanel();
+  panelTitulo.setBackground(new Color(0xA9CCE3));
+  JLabel lblTitulo = new JLabel("Panel de Administraci\u00f3n", SwingConstants.CENTER);
+  lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 22));
+  lblTitulo.setForeground(new Color(0x1A5276));
+  panelTitulo.add(lblTitulo);
+  add(panelTitulo, BorderLayout.NORTH);
 
-        JLabel lblTitulo = new JLabel("Sistema de Parqueadero");
-        lblTitulo.setFont(new Font("Arial", Font.BOLD, 20));
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        panel.add(lblTitulo, gbc);
+  // Botones principales
+  JPanel panelBotones = new JPanel(new GridLayout(4, 1, 10, 10));
+  panelBotones.setBackground(Color.WHITE);
+  panelBotones.setBorder(BorderFactory.createEmptyBorder(20, 60, 20, 60));
 
-        gbc.gridwidth = 1;
-        gbc.gridy = 1;
-        gbc.ipadx = 150;
+  JButton btnUsuarios = new JButton("Gesti\u00f3n de Usuarios");
+  estilizarBotonMenu(btnUsuarios, new Color(0x2E86C1));
+  btnUsuarios.addActionListener(e -> {
+   UsuarioView view = new UsuarioView();
+   view.setVisible(true);
+  });
 
-        JButton btnUsuarios = new JButton("Gestión de Usuarios");
-        btnUsuarios.addActionListener(e -> {
-            UsuarioView view = new UsuarioView();
-            view.setVisible(true);
-        });
-        panel.add(btnUsuarios, gbc);
+  JButton btnVehiculos = new JButton("Gesti\u00f3n de Veh\u00edculos");
+  estilizarBotonMenu(btnVehiculos, new Color(0x27AE60));
+  btnVehiculos.addActionListener(e -> {
+   VehiculoView view = new VehiculoView();
+   view.setVisible(true);
+  });
 
-        gbc.gridy = 2;
-        JButton btnVehiculos = new JButton("Gestión de Vehículos");
-        btnVehiculos.addActionListener(e -> {
-            VehiculoView view = new VehiculoView();
-            view.setVisible(true);
-        });
-        panel.add(btnVehiculos, gbc);
+  JButton btnTarifas = new JButton("Gesti\u00f3n de Tarifas");
+  estilizarBotonMenu(btnTarifas, new Color(0xE67E22));
+  btnTarifas.addActionListener(e -> {
+   TarifaView view = new TarifaView();
+   view.setVisible(true);
+  });
 
-        gbc.gridy = 3;
-        JButton btnTarifas = new JButton("Gestión de Tarifas");
-        btnTarifas.addActionListener(e -> {
-            TarifaView view = new TarifaView();
-            view.setVisible(true);
-        });
-        panel.add(btnTarifas, gbc);
+  JButton btnSalir = new JButton("Cerrar Sesi\u00f3n y Salir");
+  estilizarBotonMenu(btnSalir, new Color(0xE74C3C));
+  btnSalir.addActionListener(e -> {
+   int opcion = JOptionPane.showConfirmDialog(this,
+    "\u00BFEst\u00e1 seguro que desea salir?",
+    "Confirmar salida", JOptionPane.YES_NO_OPTION);
+   if (opcion == JOptionPane.YES_OPTION) {
+    System.exit(0);
+   }
+  });
 
-        gbc.gridy = 4;
-        JButton btnSalir = new JButton("Salir");
-        btnSalir.addActionListener(e -> {
-            int opcion = JOptionPane.showConfirmDialog(this, 
-                "¿Está seguro que desea salir?", "Confirmar salida", 
-                JOptionPane.YES_NO_OPTION);
-            if (opcion == JOptionPane.YES_OPTION) {
-                System.exit(0);
-            }
-        });
-        panel.add(btnSalir, gbc);
+  panelBotones.add(btnUsuarios);
+  panelBotones.add(btnVehiculos);
+  panelBotones.add(btnTarifas);
+  panelBotones.add(btnSalir);
 
-        JLabel lblPie = new JLabel("© 2026 - Parqueadero PRO");
-        gbc.gridy = 5;
-        gbc.gridwidth = 2;
-        panel.add(lblPie, gbc);
+  add(panelBotones, BorderLayout.CENTER);
 
-        add(panel);
-    }
+  // Pie
+  JLabel lblPie = new JLabel("\u00a9 2026 - Parqueadero PRO", SwingConstants.CENTER);
+  lblPie.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+  lblPie.setForeground(new Color(0x5D6D7E));
+  add(lblPie, BorderLayout.SOUTH);
+ }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            PrincipalView vista = new PrincipalView();
-            vista.setVisible(true);
-        });
-    }
+ private void estilizarBotonMenu(JButton btn, Color fondo) {
+  btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+  btn.setForeground(Color.WHITE);
+  btn.setBackground(fondo);
+  btn.setFocusPainted(false);
+  btn.setBorderPainted(false);
+  btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+  btn.setPreferredSize(new Dimension(300, 45));
+ }
+
+ // Punto de entrada: SIEMPRE inicia por LoginView
+ public static void main(String[] args) {
+  java.awt.EventQueue.invokeLater(() -> {
+   new LoginView().setVisible(true);
+  });
+ }
 }

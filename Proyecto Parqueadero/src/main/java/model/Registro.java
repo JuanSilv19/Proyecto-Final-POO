@@ -2,7 +2,14 @@ package model;
 
 import java.time.LocalDateTime;
 
+/**
+ * Clase que representa un registro de ingreso/salida de vehículo
+ * Incluye campos adicionales placa y tipoVehiculo para facilitar la consulta JOIN
+ */
 public class Registro {
+
+    // Constructor vacío para instanciación por defecto (usado por RegistroDAO)
+    public Registro() { }
 
     private int id;
     private int idVehiculo;
@@ -11,6 +18,10 @@ public class Registro {
     private LocalDateTime horaSalida;
     private int idTarifa;
     private boolean enTaller;
+
+    // Campos adicionales para consultas JOIN (no forman parte de la tabla base)
+    private String placa;
+    private String tipoVehiculo;
 
     public Registro(int id, int idVehiculo, int idEspacio, LocalDateTime horaEntrada,
                     LocalDateTime horaSalida, int idTarifa, boolean enTaller) {
@@ -48,6 +59,10 @@ public class Registro {
 
     public boolean isEnTaller() { return enTaller; }
 
+    // GETTERS para campos adicionales (placa y tipoVehiculo)
+    public String getPlaca() { return placa; }
+    public String getTipoVehiculo() { return tipoVehiculo; }
+
     // SETTERS
     public void setId(int id) { this.id = id; }
 
@@ -62,4 +77,8 @@ public class Registro {
     public void setIdTarifa(int idTarifa) { this.idTarifa = idTarifa; }
 
     public void setEnTaller(boolean enTaller) { this.enTaller = enTaller; }
+
+    // SETTERS para campos adicionales
+    public void setPlaca(String placa) { this.placa = placa; }
+    public void setTipoVehiculo(String tipoVehiculo) { this.tipoVehiculo = tipoVehiculo; }
 }
