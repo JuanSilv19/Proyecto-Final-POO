@@ -1,7 +1,6 @@
 package view;
 
 import java.awt.*;
-import java.awt.event.*;
 import java.math.BigDecimal;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -23,7 +22,7 @@ public class OperationalView extends JFrame {
  private final TarifaDAO tarifaDAO = new TarifaDAO();
  private final VehiculoDAO vehiculoDAO = new VehiculoDAO();
 
- // Marcador superior (compartido admin y cliente)
+ // Marcador superior (solo cliente)
  private JLabel lblPlaca;
  private JLabel lblValorAPagar;
 
@@ -32,18 +31,24 @@ public class OperationalView extends JFrame {
  private DefaultTableModel tableModel;
  private JScrollPane scrollTabla;
 
- // Panel derecho - Admin
+ // Panel CRUD Admin
+ private JTextField txtAdminPlaca;
+ private JComboBox<String> cmbAdminTipo;
+ private JButton btnActualizarVehiculo;
+ private JButton btnEliminarVehiculo;
+ private JButton btnLimpiarForm;
+
+ // Panel liquidacion (admin)
  private JLabel lblMinutosBanner;
  private JLabel lblEntrada;
  private JLabel lblSalida;
- private JButton btnImprimir;
- private JButton btnPagos;
- private JButton btnDetallado;
+ private JLabel lblValorPagarLiq;
+ private JButton btnRegistrarSalida;
 
- // Campo de busqueda cliente
+ // Campo busqueda cliente
  private JTextField txtBuscarPlaca;
 
- // Campo ingreso cliente - Pestaña 1
+ // Campo ingreso cliente
  private JTextField txtPlacaIngreso;
  private JComboBox<String> cmbTipoVehiculoIngreso;
  private JButton btnIngresarVehiculo;
@@ -54,13 +59,14 @@ public class OperationalView extends JFrame {
  private JLabel lblFechaHoraSistema;
 
  // Barra admin
- private JButton btnGestion;
+ private JButton btnCierreCaja;
 
  // Rol
  private final boolean esAdmin;
  private final String nombreUsuario;
 
  private Timer timer;
+ private Timer refreshTimer;
  private final DateTimeFormatter formatoHora = DateTimeFormatter.ofPattern("HH:mm:ss");
 
  // ==================== TARIFAS COLOMBIA ====================
@@ -75,7 +81,9 @@ public class OperationalView extends JFrame {
 
  public OperationalView(boolean esAdmin, String nombreUsuario) {
   this.esAdmin = esAdmin;
-  this.nombreUsuario = (nombreUsuario != null) ? nombreUsuario : "Administrador";
+  this.nombreUsuario = (nombreUsuario != null && !nombreUsuario.isBlank())
+      ? nombreUsuario.trim()
+      : (esAdmin ? "Administrador" : "Cliente");
 
   setTitle("Parqueadero PRO - Vista Operativa" + (esAdmin ? " [ADMIN]" : " [CLIENTE]"));
   setSize(1300, 750);
@@ -87,12 +95,6 @@ public class OperationalView extends JFrame {
 
   if (esAdmin) {
    loadCurrentVehicles();
-   if (tblVehiculos != null) {
-    tblVehiculos.setVisible(true);
-   }
-   if (scrollTabla != null) {
-    scrollTabla.setVisible(true);
-   }
   }
   startTimer();
  }
@@ -101,7 +103,9 @@ public class OperationalView extends JFrame {
  private void initComponents() {
   setLayout(new BorderLayout(10, 10));
 
-  add(createTopMarkerPanel(), BorderLayout.NORTH);
+  if (!esAdmin) {
+   add(createTopMarkerPanel(), BorderLayout.NORTH);
+  }
 
   JPanel centralPanel = new JPanel(new GridLayout(1, 2, 12, 10));
   centralPanel.setOpaque(false);
@@ -109,14 +113,13 @@ public class OperationalView extends JFrame {
 
   if (esAdmin) {
    centralPanel.add(createVehiclesTablePanel());
-   centralPanel.add(createRightPanelAdmin());
+   centralPanel.add(createAdminCrudPanel());
   } else {
    centralPanel.add(createLeftPanelCliente());
    centralPanel.add(createRightPanelCliente());
   }
   add(centralPanel, BorderLayout.CENTER);
 
-  // Barra inferior + barra admin (solo si es admin)
   JPanel southWrapper = new JPanel(new BorderLayout(0, 4));
   southWrapper.setOpaque(false);
   southWrapper.add(createBottomBar(), BorderLayout.CENTER);
@@ -130,20 +133,19 @@ public class OperationalView extends JFrame {
     if (!e.getValueIsAdjusting()) {
      int row = tblVehiculos.getSelectedRow();
      if (row >= 0) {
-      updateMarkerFromSelection(row);
+      cargarDatosFilaVehiculo(row);
      }
     }
    });
   }
  }
 
- // ==================== PANEL SUPERIOR ====================
+ // ==================== PANEL SUPERIOR (SOLO CLIENTE) ====================
  private JPanel createTopMarkerPanel() {
   JPanel panel = new JPanel(new GridLayout(1, 2, 12, 0));
   panel.setBackground(new Color(0xA9CCE3));
   panel.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
 
-  // Bloque izquierdo: PLACA
   JPanel placaBlock = new JPanel(new BorderLayout());
   placaBlock.setBackground(new Color(0xFCF3CF));
   placaBlock.setBorder(BorderFactory.createCompoundBorder(
@@ -166,7 +168,6 @@ public class OperationalView extends JFrame {
   placaInner.add(lblPlaca, BorderLayout.CENTER);
   placaBlock.add(placaInner, BorderLayout.CENTER);
 
-  // Bloque derecho: VALOR A PAGAR
   JPanel valorBlock = new JPanel(new BorderLayout());
   valorBlock.setBackground(new Color(0xD5F5E3));
   valorBlock.setBorder(BorderFactory.createCompoundBorder(
@@ -194,7 +195,7 @@ public class OperationalView extends JFrame {
   return panel;
  }
 
- // ==================== PANEL IZQUIERDO CLIENTE (placeholder) ====================
+ // ==================== PANEL IZQUIERDO CLIENTE ====================
  private JPanel createLeftPanelCliente() {
   JPanel panel = new JPanel();
   panel.setBackground(new Color(0xA9CCE3));
@@ -202,7 +203,7 @@ public class OperationalView extends JFrame {
   return panel;
  }
 
- // ==================== TABLA IZQUIERDA (ADMIN) ====================
+ // ==================== TABLA VEHICULOS (ADMIN) ====================
  private JPanel createVehiclesTablePanel() {
   JPanel panel = new JPanel(new BorderLayout());
   panel.setBackground(Color.WHITE);
@@ -246,9 +247,132 @@ public class OperationalView extends JFrame {
   return panel;
  }
 
- // ==================== BARRA DE ACCIONES ADMIN ====================
+ // ==================== PANEL CRUD ADMIN ====================
+ private JPanel createAdminCrudPanel() {
+  JPanel mainPanel = new JPanel(new BorderLayout(0, 10));
+  mainPanel.setBackground(Color.WHITE);
+  mainPanel.setBorder(BorderFactory.createTitledBorder(
+   BorderFactory.createLineBorder(new Color(0x85C1E9), 2),
+   "Control de Veh\u00edculos",
+   TitledBorder.LEFT, TitledBorder.TOP,
+   new Font("Segoe UI", Font.BOLD, 14),
+   new Color(0x2E86C1)
+  ));
+
+  // Formulario
+  JPanel formPanel = new JPanel(new GridBagLayout());
+  formPanel.setBackground(Color.WHITE);
+  GridBagConstraints gbc = new GridBagConstraints();
+  gbc.insets = new Insets(6, 8, 6, 8);
+  gbc.fill = GridBagConstraints.HORIZONTAL;
+  gbc.anchor = GridBagConstraints.WEST;
+
+  gbc.gridx = 0; gbc.gridy = 0;
+  JLabel lblPlacaForm = new JLabel("Placa:");
+  lblPlacaForm.setFont(new Font("Segoe UI", Font.BOLD, 13));
+  formPanel.add(lblPlacaForm, gbc);
+
+  gbc.gridx = 1; gbc.weightx = 1.0;
+  txtAdminPlaca = new JTextField(12);
+  txtAdminPlaca.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+  txtAdminPlaca.setBorder(BorderFactory.createCompoundBorder(
+   BorderFactory.createLineBorder(new Color(0x85C1E9), 2),
+   BorderFactory.createEmptyBorder(4, 8, 4, 8)
+  ));
+  formPanel.add(txtAdminPlaca, gbc);
+
+  gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
+  JLabel lblTipoForm = new JLabel("Tipo:");
+  lblTipoForm.setFont(new Font("Segoe UI", Font.BOLD, 13));
+  formPanel.add(lblTipoForm, gbc);
+
+  gbc.gridx = 1; gbc.weightx = 1.0;
+  cmbAdminTipo = new JComboBox<>(new String[]{"Autom\u00f3vil", "Motocicleta"});
+  cmbAdminTipo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+  cmbAdminTipo.setBackground(Color.WHITE);
+  formPanel.add(cmbAdminTipo, gbc);
+
+   // Botones CRUD
+   JPanel btnPanel = new JPanel(new GridLayout(1, 3, 8, 8));
+   btnPanel.setBackground(Color.WHITE);
+   btnPanel.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+
+   btnActualizarVehiculo = createStyledButton("Actualizar", new Color(0x2E86C1));
+   btnEliminarVehiculo = createStyledButton("Eliminar", new Color(0xE74C3C));
+   btnLimpiarForm = createStyledButton("Limpiar", new Color(0x808B96));
+
+   btnActualizarVehiculo.addActionListener(e -> actualizarVehiculoAdmin());
+   btnEliminarVehiculo.addActionListener(e -> eliminarRegistroAdmin());
+   btnLimpiarForm.addActionListener(e -> limpiarFormularioAdmin());
+
+   btnPanel.add(btnActualizarVehiculo);
+   btnPanel.add(btnEliminarVehiculo);
+   btnPanel.add(btnLimpiarForm);
+
+  // Seccion liquidacion
+  JPanel liqPanel = new JPanel(new BorderLayout(0, 6));
+  liqPanel.setBackground(new Color(0xEBF5FB));
+  liqPanel.setBorder(BorderFactory.createCompoundBorder(
+   BorderFactory.createLineBorder(new Color(0x85C1E9), 1),
+   BorderFactory.createEmptyBorder(10, 12, 10, 12)
+  ));
+
+  JLabel lblLiqTitle = new JLabel("Liquidaci\u00f3n de Salida", SwingConstants.CENTER);
+  lblLiqTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
+  lblLiqTitle.setForeground(new Color(0x1A5276));
+
+  JPanel liqCampos = new JPanel(new GridLayout(2, 2, 6, 4));
+  liqCampos.setOpaque(false);
+  JLabel lblEntradaTitle = new JLabel("Entrada:");
+  lblEntradaTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
+  liqCampos.add(lblEntradaTitle);
+  lblEntrada = new JLabel("-- : -- : --");
+  lblEntrada.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+  liqCampos.add(lblEntrada);
+  JLabel lblSalidaTitle = new JLabel("Salida:");
+  lblSalidaTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
+  liqCampos.add(lblSalidaTitle);
+  lblSalida = new JLabel("-- : -- : --");
+  lblSalida.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+  liqCampos.add(lblSalida);
+
+   lblMinutosBanner = new JLabel("-- Minutos", SwingConstants.CENTER);
+   lblMinutosBanner.setFont(new Font("Segoe UI", Font.BOLD, 18));
+   lblMinutosBanner.setForeground(new Color(0x922B21));
+
+   lblValorPagarLiq = new JLabel("Valor a Pagar: $0", SwingConstants.CENTER);
+   lblValorPagarLiq.setFont(new Font("Segoe UI", Font.BOLD, 14));
+   lblValorPagarLiq.setForeground(new Color(0x145A32));
+   lblValorPagarLiq.setBorder(BorderFactory.createEmptyBorder(2, 0, 2, 0));
+
+   btnRegistrarSalida = createStyledButton("Registrar Salida", new Color(0xE67E22));
+  btnRegistrarSalida.addActionListener(e -> calcularImprimirSalida());
+
+  liqPanel.add(lblLiqTitle, BorderLayout.NORTH);
+  liqPanel.add(liqCampos, BorderLayout.CENTER);
+  liqPanel.add(lblMinutosBanner, BorderLayout.SOUTH);
+
+  // Ensamblar
+  JPanel topSection = new JPanel(new BorderLayout(0, 12));
+  topSection.setBackground(Color.WHITE);
+  topSection.add(formPanel, BorderLayout.NORTH);
+  topSection.add(btnPanel, BorderLayout.CENTER);
+
+  JPanel liqWrapper = new JPanel(new BorderLayout(0, 4));
+  liqWrapper.setBackground(new Color(0xEBF5FB));
+  liqWrapper.add(liqPanel, BorderLayout.CENTER);
+  liqWrapper.add(lblValorPagarLiq, BorderLayout.SOUTH);
+
+  mainPanel.add(topSection, BorderLayout.NORTH);
+  mainPanel.add(liqWrapper, BorderLayout.CENTER);
+  mainPanel.add(btnRegistrarSalida, BorderLayout.SOUTH);
+
+  return mainPanel;
+ }
+
+ // ==================== BARRA ACCIONES ADMIN ====================
  private JPanel createAdminActionBar() {
-  JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
+  JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
   panel.setBackground(new Color(0xEBF5FB));
   panel.setBorder(BorderFactory.createCompoundBorder(
    BorderFactory.createLineBorder(new Color(0x85C1E9), 1),
@@ -256,119 +380,23 @@ public class OperationalView extends JFrame {
   ));
   panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
-  JLabel lblAdmin = new JLabel("PANEL DE CONTROL:");
+  JLabel lblAdmin = new JLabel("PANEL DE CONTROL:", SwingConstants.CENTER);
   lblAdmin.setFont(new Font("Segoe UI", Font.BOLD, 11));
   lblAdmin.setForeground(new Color(0x1A5276));
   panel.add(lblAdmin);
 
-  String[] botones = {"Gesti\u00f3n de Tarifas/Usuarios", "Inventario", "Balance de Caja", "Reportes"};
-  Color[] colores = {new Color(0x1A5276), new Color(0x27AE60), new Color(0xE67E22), new Color(0x8E44AD)};
-  for (int i = 0; i < botones.length; i++) {
-   JButton btn = new JButton(botones[i]);
-   btn.setFont(new Font("Segoe UI", Font.BOLD, 11));
-   btn.setForeground(Color.WHITE);
-   btn.setBackground(colores[i]);
-   btn.setFocusPainted(false);
-   btn.setBorderPainted(false);
-   btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-   btn.setPreferredSize(new Dimension(150, 28));
-   final int idx = i;
-   btn.addActionListener(e -> {
-    if (idx == 0) {
-     SwingUtilities.invokeLater(() -> new PrincipalView().setVisible(true));
-    } else {
-     JOptionPane.showMessageDialog(OperationalView.this,
-      "Funcionalidad: " + botones[idx] + "\nDisponible en pr\u00f3xima versi\u00f3n.",
-      "Informaci\u00f3n", JOptionPane.INFORMATION_MESSAGE);
-    }
-   });
-   panel.add(btn);
-  }
-  return panel;
- }
+   btnCierreCaja = new JButton("Cierre de Caja / Reportes");
+   btnCierreCaja.setFont(new Font("Segoe UI", Font.BOLD, 11));
+   btnCierreCaja.setForeground(Color.WHITE);
+   btnCierreCaja.setBackground(new Color(0x8E44AD));
+   btnCierreCaja.setFocusPainted(false);
+   btnCierreCaja.setBorderPainted(false);
+   btnCierreCaja.setCursor(new Cursor(Cursor.HAND_CURSOR));
+   btnCierreCaja.setPreferredSize(new Dimension(160, 28));
+   btnCierreCaja.addActionListener(e -> mostrarCierreCaja());
+   panel.add(btnCierreCaja);
 
- // ==================== PANEL DERECHO (ADMIN) ====================
- private JPanel createRightPanelAdmin() {
-  JPanel mainRight = new JPanel(new BorderLayout(0, 0));
-  mainRight.setBackground(Color.WHITE);
-  mainRight.setBorder(BorderFactory.createTitledBorder(
-   BorderFactory.createLineBorder(new Color(0x85C1E9), 2),
-   "Panel de Liquidaci\u00f3n",
-   TitledBorder.LEFT, TitledBorder.TOP,
-   new Font("Segoe UI", Font.BOLD, 14),
-   new Color(0x2E86C1)
-  ));
-
-  JPanel contentPanel = new JPanel();
-  contentPanel.setBackground(Color.WHITE);
-  contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-  contentPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 8, 12));
-
-  // Banner minutos
-  JPanel bannerMinutos = new JPanel(new BorderLayout());
-  bannerMinutos.setBackground(new Color(0xFADBD8));
-  bannerMinutos.setBorder(BorderFactory.createCompoundBorder(
-   BorderFactory.createLineBorder(new Color(0xE74C3C), 2),
-   BorderFactory.createEmptyBorder(14, 10, 14, 10)
-  ));
-  JLabel lblMinutosTitulo = new JLabel("Minutos Transcurridos", SwingConstants.CENTER);
-  lblMinutosTitulo.setFont(new Font("Segoe UI", Font.BOLD, 13));
-  lblMinutosTitulo.setForeground(new Color(0xC0392B));
-  lblMinutosBanner = new JLabel("-- Minutos", SwingConstants.CENTER);
-  lblMinutosBanner.setFont(new Font("Segoe UI", Font.BOLD, 30));
-  lblMinutosBanner.setForeground(new Color(0x922B21));
-  bannerMinutos.add(lblMinutosTitulo, BorderLayout.NORTH);
-  bannerMinutos.add(lblMinutosBanner, BorderLayout.CENTER);
-  bannerMinutos.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
-  contentPanel.add(bannerMinutos);
-  contentPanel.add(Box.createVerticalStrut(14));
-
-  // Campos Entrada / Salida
-  JPanel panelCampos = new JPanel(new GridLayout(2, 2, 8, 10));
-  panelCampos.setBackground(Color.WHITE);
-  panelCampos.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
-  panelCampos.add(createFieldLabel("Entrada:"));
-  lblEntrada = createFieldValue("-- : -- : --");
-  panelCampos.add(lblEntrada);
-  panelCampos.add(createFieldLabel("Salida:"));
-  lblSalida = createFieldValue("-- : -- : --");
-  panelCampos.add(lblSalida);
-  contentPanel.add(panelCampos);
-  contentPanel.add(Box.createVerticalStrut(14));
-
-  // Botones
-  JPanel panelBotones = new JPanel(new GridLayout(1, 3, 10, 0));
-  panelBotones.setBackground(Color.WHITE);
-  panelBotones.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
-  btnImprimir = createStyledButton("Imprimir", new Color(0x2EC1A4));
-  btnPagos = createStyledButton("Pagos", new Color(0x27AE60));
-  btnDetallado = createStyledButton("Detallado", new Color(0xE67E22));
-  btnImprimir.addActionListener(e -> calcularImprimirSalida());
-  panelBotones.add(btnImprimir);
-  panelBotones.add(btnPagos);
-  panelBotones.add(btnDetallado);
-  contentPanel.add(panelBotones);
-
-  mainRight.add(contentPanel, BorderLayout.CENTER);
-
-  // Boton Gestion Global
-  btnGestion = new JButton("Gesti\u00f3n Global \u25b6");
-  btnGestion.setFont(new Font("Segoe UI", Font.BOLD, 12));
-  btnGestion.setForeground(Color.WHITE);
-  btnGestion.setBackground(new Color(0x1A5276));
-  btnGestion.setFocusPainted(false);
-  btnGestion.setBorderPainted(false);
-  btnGestion.setCursor(new Cursor(Cursor.HAND_CURSOR));
-  btnGestion.addActionListener(e -> {
-   SwingUtilities.invokeLater(() -> new PrincipalView().setVisible(true));
-  });
-  JPanel panelBtnGestion = new JPanel(new BorderLayout());
-  panelBtnGestion.setBackground(Color.WHITE);
-  panelBtnGestion.setBorder(BorderFactory.createEmptyBorder(8, 12, 10, 12));
-  panelBtnGestion.add(btnGestion, BorderLayout.CENTER);
-  mainRight.add(panelBtnGestion, BorderLayout.SOUTH);
-
-  return mainRight;
+   return panel;
  }
 
  // ==================== PANEL DERECHO (CLIENTE) ====================
@@ -400,7 +428,7 @@ public class OperationalView extends JFrame {
   panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
   panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-  JLabel lblBienvenida = new JLabel("Bienvenido, " + nombreUsuario, SwingConstants.CENTER);
+  JLabel lblBienvenida = new JLabel("Bienvenido a Parqueadero PRO", SwingConstants.CENTER);
   lblBienvenida.setFont(new Font("Segoe UI", Font.BOLD, 16));
   lblBienvenida.setForeground(new Color(0x1A5276));
   lblBienvenida.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -488,14 +516,14 @@ public class OperationalView extends JFrame {
   return panel;
  }
 
- // ==================== PESTAÑA 2: CONSULTAR ESTADÍA Y TARIFA ====================
+ // ==================== PESTAÑA 2: CONSULTAR ESTADÍA ====================
  private JPanel createTabConsulta() {
   JPanel panel = new JPanel();
   panel.setBackground(Color.WHITE);
   panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
   panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-  JLabel lblBienvenida = new JLabel("Bienvenido, " + nombreUsuario, SwingConstants.CENTER);
+  JLabel lblBienvenida = new JLabel("Bienvenido a Parqueadero PRO", SwingConstants.CENTER);
   lblBienvenida.setFont(new Font("Segoe UI", Font.BOLD, 16));
   lblBienvenida.setForeground(new Color(0x1A5276));
   lblBienvenida.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -715,8 +743,17 @@ public class OperationalView extends JFrame {
     idVehiculo = vehiculo.getId();
    }
 
-   Tarifa tarifa = tarifaDAO.leerPorTipo(tipoBD);
-   int idTarifa = tarifa != null ? tarifa.getId() : 1;
+   Tarifa tarifa = tarifaDAO.leerPorTipo(tipoSeleccionado);
+   if (tarifa == null) {
+    tarifa = tarifaDAO.leerPorTipo(tipoBD);
+   }
+   if (tarifa == null) {
+    java.math.BigDecimal hora = new java.math.BigDecimal("5450.00");
+    java.math.BigDecimal dia = new java.math.BigDecimal("32500.00");
+    tarifa = new Tarifa(0, tipoBD, hora, dia);
+    tarifaDAO.crear(tarifa);
+   }
+   int idTarifa = tarifa.getId();
 
    LocalDateTime ahora = LocalDateTime.now();
    Registro registro = new Registro(idVehiculo, 0, ahora, idTarifa, false);
@@ -785,25 +822,38 @@ public class OperationalView extends JFrame {
 
  private void actualizarMarkerCliente(Registro registro) {
   lblPlaca.setText(registro.getPlaca());
+  long segundos = ChronoUnit.SECONDS.between(
+   registro.getHoraEntrada(), LocalDateTime.now());
   double valor = calcularValorAPagarCliente(registro);
   lblValorAPagar.setText(String.format("$%,.0f", valor));
   lblEntrada.setText(registro.getHoraEntrada().format(formatoHora));
   lblSalida.setText(LocalTime.now().format(formatoHora));
-  long minutos = ChronoUnit.MINUTES.between(
-   registro.getHoraEntrada(), LocalDateTime.now());
-  lblMinutosBanner.setText(minutos + " Minutos");
+
+  if (segundos < 60) {
+   lblMinutosBanner.setText("Tarifa m\u00ednima ($3.250) aplicada");
+  } else {
+   long minutos = ChronoUnit.MINUTES.between(
+    registro.getHoraEntrada(), LocalDateTime.now());
+   lblMinutosBanner.setText(minutos + " Minutos");
+  }
  }
 
- // ==================== CALCULO TARIFA COLOMBIA (CLIENTE) ====================
+ // ==================== CALCULO TARIFA (CLIENTE) ====================
  private double calcularValorAPagarCliente(Registro registro) {
   try {
    LocalDateTime entrada = registro.getHoraEntrada();
    LocalDateTime ahora = LocalDateTime.now();
-   long minutosTotales = ChronoUnit.MINUTES.between(entrada, ahora);
+   long segundosTotales = ChronoUnit.SECONDS.between(entrada, ahora);
 
-   if (minutosTotales <= 0) {
-    return 0.0;
+   if (segundosTotales <= 0) {
+    return TARIFA_FRACCION.doubleValue();
    }
+
+   if (segundosTotales < 60) {
+    return TARIFA_FRACCION.doubleValue();
+   }
+
+   long minutosTotales = ChronoUnit.MINUTES.between(entrada, ahora);
    if (minutosTotales <= MINUTOS_FRACCION) {
     return TARIFA_FRACCION.doubleValue();
    }
@@ -814,7 +864,144 @@ public class OperationalView extends JFrame {
    return Math.max(TARIFA_FRACCION.doubleValue(), total);
   } catch (Exception ex) {
    ex.printStackTrace();
-   return 0.0;
+   return TARIFA_FRACCION.doubleValue();
+  }
+ }
+
+ // ==================== CRUD ADMIN: ACTUALIZAR VEHICULO ====================
+ private void actualizarVehiculoAdmin() {
+  int row = tblVehiculos.getSelectedRow();
+  if (row < 0) {
+   JOptionPane.showMessageDialog(this,
+    "Seleccione un veh\u00edculo de la tabla para actualizar.",
+    "Advertencia", JOptionPane.WARNING_MESSAGE);
+   return;
+  }
+
+  String placaVieja = (String) tableModel.getValueAt(row, 0);
+  String placaNueva = txtAdminPlaca.getText().trim().toUpperCase();
+  if (placaNueva.isEmpty()) {
+   JOptionPane.showMessageDialog(this,
+    "Ingrese la nueva placa.", "Campo Vac\u00edo", JOptionPane.WARNING_MESSAGE);
+   return;
+  }
+
+  String tipoBD = "Autom\u00f3vil".equals(cmbAdminTipo.getSelectedItem()) ? "CARRO" : "MOTO";
+  try {
+   Vehiculo vehiculo = null;
+   List<Vehiculo> vehiculos = vehiculoDAO.leerTodos();
+   for (Vehiculo v : vehiculos) {
+    if (v.getPlaca().equalsIgnoreCase(placaVieja)) {
+     vehiculo = v;
+     break;
+    }
+   }
+   if (vehiculo == null) {
+    JOptionPane.showMessageDialog(this,
+     "No se encontr\u00f3 el veh\u00edculo en la base de datos.",
+     "Error", JOptionPane.ERROR_MESSAGE);
+    return;
+   }
+   vehiculo.setPlaca(placaNueva);
+   vehiculo.setTipo(tipoBD);
+   vehiculoDAO.actualizar(vehiculo);
+   JOptionPane.showMessageDialog(this,
+    "Veh\u00edculo actualizado correctamente.",
+    "Actualizado", JOptionPane.INFORMATION_MESSAGE);
+   limpiarFormularioAdmin();
+   loadCurrentVehicles();
+  } catch (Exception ex) {
+   JOptionPane.showMessageDialog(this,
+    "Error al actualizar: " + ex.getMessage(),
+    "Error", JOptionPane.ERROR_MESSAGE);
+   ex.printStackTrace();
+  }
+ }
+
+ // ==================== CRUD ADMIN: ELIMINAR REGISTRO ====================
+ private void eliminarRegistroAdmin() {
+  int row = tblVehiculos.getSelectedRow();
+  if (row < 0) {
+   JOptionPane.showMessageDialog(this,
+    "Seleccione un registro de la tabla para eliminar.",
+    "Advertencia", JOptionPane.WARNING_MESSAGE);
+   return;
+  }
+
+  int idRegistro = (int) tableModel.getValueAt(row, 4);
+  String placa = (String) tableModel.getValueAt(row, 0);
+
+  int confirm = JOptionPane.showConfirmDialog(this,
+   "\u00BFEst\u00e1 seguro de eliminar el registro de " + placa + "?",
+   "Confirmar Eliminaci\u00f3n", JOptionPane.YES_NO_OPTION);
+  if (confirm != JOptionPane.YES_OPTION) return;
+
+  try {
+   boolean exito = registroDAO.eliminar(idRegistro);
+   if (exito) {
+    JOptionPane.showMessageDialog(this,
+     "Registro eliminado correctamente.",
+     "Eliminado", JOptionPane.INFORMATION_MESSAGE);
+    limpiarFormularioAdmin();
+    loadCurrentVehicles();
+    updateCounters();
+   } else {
+    JOptionPane.showMessageDialog(this,
+     "No se pudo eliminar el registro.", "Error", JOptionPane.ERROR_MESSAGE);
+   }
+  } catch (Exception ex) {
+   JOptionPane.showMessageDialog(this,
+    "Error al eliminar: " + ex.getMessage(),
+    "Error", JOptionPane.ERROR_MESSAGE);
+   ex.printStackTrace();
+  }
+ }
+
+ // ==================== CRUD ADMIN: LIMPIAR FORMULARIO ====================
+ private void limpiarFormularioAdmin() {
+  txtAdminPlaca.setText("");
+  cmbAdminTipo.setSelectedIndex(0);
+  tblVehiculos.clearSelection();
+  lblEntrada.setText("-- : -- : --");
+  lblSalida.setText("-- : -- : --");
+  lblMinutosBanner.setText("-- Minutos");
+  lblValorPagarLiq.setText("Valor a Pagar: $0");
+ }
+
+ // ==================== CARGAR DATOS FILA SELECCIONADA ====================
+ private void cargarDatosFilaVehiculo(int row) {
+  try {
+   String placa = (String) tableModel.getValueAt(row, 0);
+   txtAdminPlaca.setText(placa);
+
+   String tipoViejo = (String) tableModel.getValueAt(row, 3);
+   if ("CARRO".equals(tipoViejo)) {
+    cmbAdminTipo.setSelectedItem("Autom\u00f3vil");
+   } else {
+    cmbAdminTipo.setSelectedItem("Motocicleta");
+   }
+
+   int idIngresoSalida = (int) tableModel.getValueAt(row, 4);
+   Registro registro = registroDAO.getRegistroById(idIngresoSalida);
+   if (registro != null) {
+    lblEntrada.setText(registro.getHoraEntrada().format(formatoHora));
+    lblSalida.setText(LocalTime.now().format(formatoHora));
+    long totalMinutos = ChronoUnit.MINUTES.between(
+     registro.getHoraEntrada(), LocalDateTime.now());
+    if (totalMinutos >= 60) {
+     long horas = totalMinutos / 60;
+     long mins = totalMinutos % 60;
+     lblMinutosBanner.setText(horas + " Horas y " + mins + " Minutos");
+    } else {
+     lblMinutosBanner.setText(totalMinutos + " Minutos");
+    }
+    double valor = calcularValorAPagar(registro);
+    lblValorPagarLiq.setText(String.format("Valor a Pagar: $%,.0f", valor));
+   }
+  } catch (Exception ex) {
+   JOptionPane.showMessageDialog(this,
+    "Error al cargar datos: " + ex.getMessage(),
+    "Error", JOptionPane.ERROR_MESSAGE);
   }
  }
 
@@ -824,6 +1011,7 @@ public class OperationalView extends JFrame {
   try {
    tableModel.setRowCount(0);
    List<Object[]> activos = registroDAO.getRegistrosActivosConDetalles();
+   int carros = 0, motos = 0;
    for (Object[] fila : activos) {
     Object[] rowDisplay = new Object[5];
     rowDisplay[0] = fila[0];
@@ -832,8 +1020,11 @@ public class OperationalView extends JFrame {
     rowDisplay[3] = fila[3];
     rowDisplay[4] = fila[4];
     tableModel.addRow(rowDisplay);
+    if ("CARRO".equals(fila[3])) carros++;
+    else if ("MOTO".equals(fila[3])) motos++;
    }
-   updateCounters();
+   lblCarrosCount.setText(String.valueOf(carros));
+   lblMotosCount.setText(String.valueOf(motos));
   } catch (Exception ex) {
    JOptionPane.showMessageDialog(this,
     "Error al cargar veh\u00edculos: " + ex.getMessage(),
@@ -841,36 +1032,8 @@ public class OperationalView extends JFrame {
   }
  }
 
- private void updateMarkerFromSelection(int row) {
-  if (!esAdmin || tableModel == null) return;
-  try {
-   String placa = (String) tableModel.getValueAt(row, 0);
-   int idIngresoSalida = (int) tableModel.getValueAt(row, 4);
-   lblPlaca.setText(placa);
-   Registro registro = registroDAO.getRegistroById(idIngresoSalida);
-   if (registro != null) {
-    actualizarMarkerCliente(registro);
-   }
-  } catch (Exception ex) {
-   JOptionPane.showMessageDialog(this,
-    "Error al actualizar marcador: " + ex.getMessage(),
-    "Error", JOptionPane.ERROR_MESSAGE);
-  }
- }
-
  private double calcularValorAPagar(Registro registro) {
-  try {
-   Tarifa tarifa = tarifaDAO.leerPorId(registro.getIdTarifa());
-   if (tarifa == null) return 0.0;
-   LocalDateTime ahora = LocalDateTime.now();
-   long horas = ChronoUnit.HOURS.between(registro.getHoraEntrada(), ahora);
-   long minutos = ChronoUnit.MINUTES.between(registro.getHoraEntrada(), ahora) % 60;
-   double horasDecimales = horas + (minutos / 60.0);
-   return Math.max(0, horasDecimales * tarifa.getTarifaHora().doubleValue());
-  } catch (Exception ex) {
-   ex.printStackTrace();
-   return 0.0;
-  }
+  return calcularValorAPagarCliente(registro);
  }
 
  private void calcularImprimirSalida() {
@@ -927,7 +1090,7 @@ public class OperationalView extends JFrame {
 
    JOptionPane.showMessageDialog(this, mensaje, "Recibo de Pago", JOptionPane.INFORMATION_MESSAGE);
    loadCurrentVehicles();
-   limpiarMarcador();
+   limpiarFormularioAdmin();
   } catch (Exception ex) {
    JOptionPane.showMessageDialog(this,
     "Error al registrar salida: " + ex.getMessage(),
@@ -958,6 +1121,37 @@ public class OperationalView extends JFrame {
   }
  }
 
+ // ==================== CIERRE DE CAJA ====================
+ private void mostrarCierreCaja() {
+  if (!esAdmin) return;
+  try {
+   Object[] cierre = registroDAO.getCierreCajaDiario();
+   int total = (int) cierre[0];
+   double recaudado = ((java.math.BigDecimal) cierre[1]).doubleValue();
+   int carros = (int) cierre[2];
+   int motos = (int) cierre[3];
+
+   String fecha = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+   String mensaje = String.format(
+    "--- CIERRE DE CAJA DIARIO ---\n\n" +
+    "Fecha: %s\n" +
+    "Total veh\u00edculos procesados: %d\n" +
+    "Carros procesados: %d\n" +
+    "Motos procesadas: %d\n\n" +
+    "Total Recaudado: $%,.0f",
+    fecha, total, carros, motos, recaudado
+   );
+
+   JOptionPane.showMessageDialog(this, mensaje,
+    "Cierre de Caja / Reportes", JOptionPane.INFORMATION_MESSAGE);
+  } catch (Exception ex) {
+   JOptionPane.showMessageDialog(this,
+    "Error al consultar cierre de caja: " + ex.getMessage(),
+    "Error", JOptionPane.ERROR_MESSAGE);
+   ex.printStackTrace();
+  }
+ }
+
  // ==================== TIMER ====================
  private void startTimer() {
   timer = new Timer(1000, e -> {
@@ -967,12 +1161,20 @@ public class OperationalView extends JFrame {
    lblFechaHoraSistema.setText(diaSemana.toUpperCase() + " " + fechaHora);
   });
   timer.start();
+
+  if (esAdmin) {
+   refreshTimer = new Timer(5000, e -> loadCurrentVehicles());
+   refreshTimer.start();
+  }
  }
 
  @Override
  public void dispose() {
   if (timer != null) {
    timer.stop();
+  }
+  if (refreshTimer != null) {
+   refreshTimer.stop();
   }
   super.dispose();
  }

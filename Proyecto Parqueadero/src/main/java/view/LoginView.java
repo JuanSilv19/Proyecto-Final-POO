@@ -128,7 +128,7 @@ public class LoginView extends JFrame {
      usuario = new Usuario(0, "Administrador", "Sistema", "0000000", email, true);
      abrirVenta(true, usuario);
     } else if ("cliente".equals(email) && "5678".equals(clave)) {
-     usuario = new Usuario(0, "Cliente", "Auxiliar", "1111111", email, false);
+     usuario = new Usuario(0, "Mar\u00eda", "L\u00f3pez", "1111111", email, false);
      abrirVenta(false, usuario);
     } else {
      JOptionPane.showMessageDialog(this,
@@ -144,7 +144,7 @@ public class LoginView extends JFrame {
     Usuario u = new Usuario(0, "Administrador", "Sistema", "0000000", email, true);
     abrirVenta(true, u);
    } else if ("cliente".equals(email) && "5678".equals(clave)) {
-    Usuario u = new Usuario(0, "Cliente", "Auxiliar", "1111111", email, false);
+    Usuario u = new Usuario(0, "Mar\u00eda", "L\u00f3pez", "1111111", email, false);
     abrirVenta(false, u);
    } else {
     JOptionPane.showMessageDialog(this,

@@ -25,8 +25,8 @@ public class RegistroDAO {
 
  public List<Object[]> getRegistrosActivosConDetalles() throws SQLException {
   List<Object[]> resultados = new ArrayList<>();
-  String sql = "SELECT v.placa, DATE(i.hora_entrada) as fecha_entrada, " +
-    "TIME(i.hora_entrada) as hora_entrada, v.tipo as tipo_vehiculo, " +
+   String sql = "SELECT v.placa, DATE(i.hora_entrada) as fecha_entrada, " +
+     "CAST(i.hora_entrada AS TIME) as hora_entrada, v.tipo_vehiculo as tipo_vehiculo, " +
     "i.id_ingreso_salida as numero_recibo " +
     "FROM ingresos_salidas i " +
     "JOIN vehiculos v ON i.id_vehiculo = v.id_vehiculo " +
@@ -119,10 +119,44 @@ public class RegistroDAO {
   }
  }
 
+ public boolean eliminar(int id) throws SQLException {
+  String sql = "DELETE FROM ingresos_salidas WHERE id_ingreso_salida = ?";
+  try (Connection c = conexionDB.conectar();
+   PreparedStatement ps = c.prepareStatement(sql)) {
+   ps.setInt(1, id);
+   return ps.executeUpdate() > 0;
+  }
+ }
+
+ public Object[] getCierreCajaDiario() throws SQLException {
+  String sql = "SELECT " +
+    "COUNT(*) as total, " +
+    "COALESCE(SUM(i.monto_pagado), 0) as total_recaudado, " +
+    "COUNT(CASE WHEN v.tipo_vehiculo = 'CARRO' THEN 1 END) as carros, " +
+    "COUNT(CASE WHEN v.tipo_vehiculo = 'MOTO' THEN 1 END) as motos " +
+    "FROM ingresos_salidas i " +
+    "JOIN vehiculos v ON i.id_vehiculo = v.id_vehiculo " +
+    "WHERE i.hora_salida IS NOT NULL " +
+    "AND CAST(i.hora_salida AS DATE) = CURRENT_DATE";
+  try (Connection c = conexionDB.conectar();
+   PreparedStatement ps = c.prepareStatement(sql);
+   ResultSet rs = ps.executeQuery()) {
+   if (rs.next()) {
+    return new Object[]{
+     rs.getInt("total"),
+     rs.getBigDecimal("total_recaudado"),
+     rs.getInt("carros"),
+     rs.getInt("motos")
+    };
+   }
+  }
+  return new Object[]{0, java.math.BigDecimal.ZERO, 0, 0};
+ }
+
  public int contarVehiculosPorTipo(String tipo) throws SQLException {
   String sql = "SELECT COUNT(*) FROM ingresos_salidas i " +
     "JOIN vehiculos v ON i.id_vehiculo = v.id_vehiculo " +
-    "WHERE i.hora_salida IS NULL AND v.tipo = ?";
+    "WHERE i.hora_salida IS NULL AND v.tipo_vehiculo = ?";
   try (Connection c = conexionDB.conectar();
    PreparedStatement ps = c.prepareStatement(sql)) {
    ps.setString(1, tipo);
