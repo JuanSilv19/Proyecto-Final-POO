@@ -22,9 +22,7 @@ EpicParqueadero PRO es un sistema de gestión y control de estacionamientos desa
 * **Persistencia Robusta:** Operaciones CRUD completas mapeadas directamente a una base de datos relacional.
 
 ---
-
-## 🗂️ Estructura del Proyecto
-
+```
 EpicParqueaderoPRO/
 ├── src/main/java/
 │   ├── app/
@@ -47,10 +45,7 @@ EpicParqueaderoPRO/
 ├── database.sql                       # Script de estructura y DDL de la base de datos
 ├── Diagrama Relacional.png            # Diagrama Entidad-Relación
 └── DiagramDeclases.png                # Estructura de clases del sistema
-
-
-
----
+```
 
 ## 🖼️ Módulos de la Interfaz Gráfica (Capturas del Sistema)
 
