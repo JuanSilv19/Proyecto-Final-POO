@@ -1,136 +1,114 @@
 # 🅿️ EpicParqueadero PRO
 
-**Proyecto del Taller de Panel Administrativo**
-Tecnología de Desarrollo de Sistemas Informáticos
-📅 I Semestre 2026
-👨‍🏫 Profesor: Mag. Carlos Adolfo Beltrán Castro
+**Proyecto del Taller de Panel Administrativo**  
+Tecnología de Desarrollo de Sistemas Informáticos — Unidades Tecnológicas de Santander (UTS)  
+📅 I Semestre 2026  
+👨‍🏫 Profesor: Mag. Carlos Adolfo Beltrán Castro  
 
-👨‍💻 Estudiantes:
-- Juan Andrés Cárdenas Silva — CC: 1014739348
-- Christian Marín Delgado — CC: 1005334750
-
-
----
-
-
-> Pantalla inicial del Sistema de Parqueadero con menú de navegación
-<img width="484" height="361" alt="image" src="https://github.com/user-attachments/assets/ddc108c1-abb0-4a95-a496-fff7284cdd03" />
-
+👨‍💻 Estudiantes:  
+- Juan Andrés Cárdenas Silva — CC: 1014739348  
+- Christian Marín Delgado — CC: 1005334750  
 
 ---
+
 
 ## 🚀 Descripción del Proyecto
 
-EpicParqueadero PRO es un sistema de gestión de parqueadero desarrollado con **Java SE - SWING**. Permite administrar usuarios, vehículos y tarifas mediante interfaces gráficas modernas conectadas a una base de datos PostgreSQL en la nube. Incluye navegación entre módulos y funcionalidades CRUD completas.
+EpicParqueadero PRO es un sistema de gestión y control de estacionamientos desarrollado bajo el paradigma de Programación Orientada a Objetos utilizando **Java SE (Swing)**. La aplicación expone un entorno administrativo robusto conectado a una base de datos **PostgreSQL** para centralizar la gestión de usuarios y el control de vehículos en tiempo real.
+
+### ✨ Características Principales
+* **Seguridad en el Acceso:** Flujo de autenticación obligatorio para resguardar las operaciones del sistema.
+* **Panel Administrativo Limpio:** Interfaz unificada orientada a la experiencia del operador.
+* **Persistencia Robusta:** Operaciones CRUD completas mapeadas directamente a una base de datos relacional.
 
 ---
 
 ## 🗂️ Estructura del Proyecto
 
-```
 EpicParqueaderoPRO/
 ├── src/main/java/
 │   ├── app/
-│   │   └── Main.java                  # Punto de entrada
+│   │   └── Main.java                  # Punto de entrada oficial del sistema
 │   ├── model/
 │   │   ├── Persona.java               # Clase abstracta base
-│   │   ├── Usuario.java               # Extiende Persona
-│   │   ├── Vehiculo.java
-│   │   ├── Tarifa.java
-│   │   ├── Registro.java
-│   │   └── TipoVehiculo.java
+│   │   ├── Usuario.java               # Entidad que extiende de Persona
+│   │   ├── Vehiculo.java              # Entidad de gestión de automotores
+│   │   └── Registro.java              # Control de entradas y salidas
 │   ├── persistencia/
-│   │   ├── ConexionDB.java            # Conexión PostgreSQL
-│   │   ├── I_CRUD.java                # Interfaz genérica CRUD
-│   │   ├── UsuarioDAO.java
-│   │   ├── VehiculoDAO.java
-│   │   ├── TarifaDAO.java
-│   │   └── RegistroDAO.java
+│   │   ├── ConexionDB.java            # Conexión centralizada a PostgreSQL
+│   │   ├── I_CRUD.java                # Interfaz genérica para operaciones CRUD
+│   │   ├── UsuarioDAO.java            # Implementación de persistencia de usuarios
+│   │   └── RegistroDAO.java           # Control de persistencia de flujos
 │   └── view/
-│       ├── PrincipalView.java         # Menú principal SWING
-│       ├── UsuarioView.java           # CRUD Usuarios
-│       ├── VehiculoView.java          # CRUD Vehículos
-│       └── TarifaView.java            # CRUD Tarifas
-├── database.sql                       # Script de base de datos
-├── Diagrama Relacional.png            # Diagrama ER
-└── DiagramDeclases.png                # Diagrama de clases
-```
+│       ├── LoginView.java             # Interfaz de acceso obligatorio
+│       ├── PrincipalView.java         # Panel administrativo y menú de navegación
+│       ├── OperationalView.java       # Módulo operativo del sistema
+│       └── UsuarioView.java           # Panel de gestión de usuarios
+├── database.sql                       # Script de estructura y DDL de la base de datos
+├── Diagrama Relacional.png            # Diagrama Entidad-Relación
+└── DiagramDeclases.png                # Estructura de clases del sistema
 
-**Lista de Menú de Opciones:**
-- 👤 Gestión de Usuarios
-- 🚗 Gestión de Vehículos
-- 💰 Gestión de Tarifas
-- 🚪 Salir
 
-**Vistas CRUD** con tablas en: Usuarios, Vehículos y Tarifas
-
-**Salir** con mensaje informativo de cierre de sesión
 
 ---
 
-## 🛠️ Lista de Tecnologías Usadas
+## 🖼️ Módulos de la Interfaz Gráfica (Capturas del Sistema)
 
-| Tecnología | Versión | Uso |
+### 🔐 1. Flujo de Autenticación (Inicio de Sesión)
+Control de acceso seguro que valida las credenciales de los usuarios administradores antes de permitir el ingreso al panel de control.
+
+<img width="507" height="315" alt="image" src="https://github.com/user-attachments/assets/a24a66e7-d8fc-4292-9aa1-0514cfe7af80" />
+
+### 🖥️ 2. Panel Administrativo (Vista Principal del Admin)
+Consola centralizada de navegación que permite al operador redirigirse a los submódulos del sistema y realizar un cierre de sesión seguro.
+
+<img width="1596" height="927" alt="image" src="https://github.com/user-attachments/assets/8c71261a-2b1a-4a92-b9e3-f16ef01ce81d" />
+
+### 👤 3. Gestión Operativa y Control de Vehículos (Vista del Cliente)
+Interfaces dinámicas con componentes de tablas (`JTable`) para visualizar, registrar, actualizar y controlar los flujos de entrada y salida de vehículos vinculados a sus respectivos clientes.
+
+
+<img width="1603" height="922" alt="image" src="https://github.com/user-attachments/assets/8e70faf5-1532-4a9b-931a-18b43140804d" />
+
+---
+
+## 🛠️ Arquitectura Tecnológica
+
+| Tecnología | Versión | Uso / Rol en el Sistema |
 |---|---|---|
-| Java SE | JDK 23 | Lenguaje principal |
-| Java SWING | Incluido en JDK | Interfaz gráfica |
-| PostgreSQL | 42.6.0 (JDBC) | Base de datos |
-| Clever Cloud | — | Hosting BD en la nube |
-| Maven | 3.x | Gestión de dependencias |
-| NetBeans IDE | 24 | Entorno de desarrollo |
+| **Java SE** | JDK 25 | Lenguaje y entorno de ejecución principal |
+| **Java SWING** | Incluido | Framework para el diseño de interfaces de usuario |
+| **PostgreSQL Driver** | 42.7.7 | Conector JDBC para la persistencia de datos |
+| **IntelliJ IDEA** | 2025.2.4 | Entorno de Desarrollo Integrado (IDE) |
+| **Git / GitHub** | Versión Activa | Control de versiones y despliegue del artefacto |
 
 ---
 
-## ⚙️ Instalación y Ejecución
+## ⚙️ Instalación y Despliegue
 
-### Requisitos
-- Java JDK 17 o superior instalado
-- Conexión a internet (la BD está en la nube)
+### Requisitos Mínimos
+* Java JDK 17 o superior instalado en el sistema.
+* Conexión a red activa (para el consumo de datos de la BD en la nube).
 
-### Opción 1 — Ejecutar el JAR
+### Ejecución Directa (Producción)
+Para ejecutar la aplicación compilada estable sin necesidad de abrir un IDE, descarga el repositorio y ejecuta el archivo empaquetado desde tu consola:
+
 ```bash
-java -jar EpicParqueaderoPRO-1.0.jar
-```
+java -jar out/artifacts/EpicParqueaderoPRO_jar/EpicParqueaderoPRO.jar
 
-### Opción 2 — Desde NetBeans
-1. Abrir NetBeans IDE
-2. File → Open Project → seleccionar carpeta `Proyecto Parqueadero`
-3. Clic derecho en el proyecto → Properties → Run → Main Class: `app.Main`
-4. Presionar F6
 
-### Opción 3 — Maven
-```bash
-cd "Proyecto Parqueadero"
-./mvnw clean package
-java -jar target/EpicParqueaderoPRO-1.0.jar
-```
+Ejecución en Entorno de Desarrollo (IntelliJ IDEA)
+Clona el repositorio e importa la carpeta raíz como proyecto de Java.
 
----
+Asegúrate de mapear el SDK del proyecto a tu versión de JDK instalada.
 
-## 🗄️ Base de Datos
+Ubica la clase src/main/java/app/Main.java, haz clic derecho y selecciona Run 'Main.main()'.
 
-La base de datos está alojada en **Clever Cloud** (PostgreSQL en la nube).
+🧱 Pilares de Programación Orientada a Objetos Aplicados
+Herencia: La clase Usuario hereda la estructura de datos y comportamiento común definidos en la clase abstracta Persona.
 
-### Tablas principales:
-- `usuarios` — gestión de clientes del parqueadero
-- `vehiculos` — vehículos registrados por usuario
-- `tarifas` — tarifas por tipo de vehículo (hora/día)
-- `ingresos_salidas` — registro de entradas y salidas
+Abstracción: Definición conceptual de entidades base mediante clases abstractas y métodos de contratos lógicos que no exponen su implementación interna.
 
-El script completo está en [`database.sql`](database.sql)
+Uso de Interfaces (I_CRUD<T>): Desacoplamiento total del acceso a datos mediante contratos abstractos implementados obligatoriamente por los objetos de acceso a datos (DAOs).
 
----
-
-## 🧱 Diagrama Entidad-Relación
-
-![Diagrama ER](Diagrama%20Relacional.png)
-
----
-
-## 📐 Patrones y Principios POO Aplicados
-
-- **Herencia** — `Usuario` extiende la clase abstracta `Persona`
-- **Abstracción** — clase abstracta `Persona` con atributos base
-- **Interfaz** — `I_CRUD<T>` implementada por todos los DAOs
-- **Encapsulamiento** — atributos privados con getters/setters
-- **Patrón DAO** — separación entre lógica de negocio y acceso a datos
+Encapsulamiento: Restricción de acceso directo a las propiedades del modelo mediante modificadores de acceso privados, exponiendo la interacción segura a través de métodos accesores (Getters y Setters).
